@@ -32,7 +32,7 @@ class ed_model(object):
 
 
     def add_embedding(self, vectors):
-
+        # construct the look-up table
         initial = tf.constant(vectors, dtype=tf.float32)
         with tf.variable_scope('embedded_layer'):
             WV = tf.get_variable('word_vectors', initializer=initial)
@@ -41,6 +41,7 @@ class ed_model(object):
                                                 shape=[self.config.sequence_length,
                                                        self.config.position_embedded_size],
                                                 dtype=tf.float32)
+            # split the lookup-table tensor into smaller tensors
             wv = [tf.squeeze(x, [1]) for x in tf.split(axis=1, num_or_size_splits=self.config.sequence_length, value=wv)]
             inputs = []
             for v in range(len(wv)):
@@ -54,7 +55,7 @@ class ed_model(object):
     def add_model(self, l2_reg_lambda):
         """
 
-        :param l2_reg_lambda:
+        :param l2_reg_lambda: used to avoid overfitting
                 self.input_x: list of tensor len = sentence_length, each tensor has
                     shape = [batch_size, embed_size]
         :return:

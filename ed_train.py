@@ -16,21 +16,24 @@ tf.flags.DEFINE_integer("num_epochs", 300, "")
 FLAGS = tf.flags.FLAGS
 
 if __name__ == '__main__':
-    vectors, sents, anchor = load_data("windows1.bin", "labels1.bin")
-    _, sents_test1, anchor_test1 = load_data("windows2.bin", "labels2.bin")
+    vectors, sents, anchor = load_data("./preprocessing/windows1.bin", "./preprocessing/labels1.bin")
+    _, sents_test1, anchor_test1 = load_data("./preprocessing/windows2.bin", "./preprocessing/labels2.bin")
     '''
     _, sent_test2, anchor_test2 = load_data("windows3.bin", "labels3.bin")
     _, sent_test3, anchor_test3 = load_data("windows4.bin", "labels4.bin")
     '''
+    # sents are the windows
     sents = np.array(sents)
     anchor = np.array(anchor)
     vocab_length = len(vectors)
     print(len(sents))
     np.random.seed(10)
+    # shuffle the order of indices randomly
     shuffle_indices = np.random.permutation(np.arange(len(sents)))
     sent_shuffled = sents[shuffle_indices]
     anchor_shuffled = anchor[shuffle_indices]
 
+    # split the dataset into train, development and test
     dev_sample_index = int(FLAGS.split * float(len(sents)))
     test_sample_index = dev_sample_index + int(FLAGS.dev_size * float(len(sents)))
     sent_train, sent_dev, sent_test = sent_shuffled[:dev_sample_index], sent_shuffled[dev_sample_index: test_sample_index],\
@@ -39,6 +42,7 @@ if __name__ == '__main__':
                                anchor_shuffled[test_sample_index:]
     sent_dev, anchor_dev = data_evaluate(sent_dev, anchor_dev)
     sent_test, anchor_test = data_evaluate(sent_test, anchor_test)
+    
     anchor_train_std = np.zeros((len(anchor_train), 34))
     anchor_train_std[range(len(anchor_train)), anchor_train] = 1
     anchor_dev_std = np.zeros((len(anchor_dev), 34))
@@ -64,7 +68,9 @@ if __name__ == '__main__':
         with sess.as_default():
             cf = config()
             cnn = ed_model(cf, vocab_length, vectors )
+            # count training steps
             global_step = tf.Variable(0, name="global_step", trainable=False)
+            # set optimizer 
             optimizer = tf.train.AdamOptimizer(1e-3)
             grads_and_vars = optimizer.compute_gradients(cnn.loss)
             train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
@@ -160,10 +166,7 @@ if __name__ == '__main__':
                 feed_dict)
             
             time_str = datetime.datetime.now().isoformat()
-            precision, recall, f1_score, status = precision_recall_fscore_support(y_batch, np.array(y_pred), 
-                                                                                  labels=range(1,34),
-                                                                                  pos_label=None,
-                                                                                  average='micro')
+            precision, recall, f1_score, status = precision_recall_fscore_support(y_batch, np.array(y_pred), labels=range(1,34), pos_label=None, average='micro')
             print("{}: step {}:".format(time_str, step))
             print(precision, recall, f1_score)
             if writer:

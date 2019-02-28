@@ -15,9 +15,11 @@ EVENT_MAP={'None': 0, 'Personnel.Nominate': 1, 'Contact.Phone-Write': 27, 'Busin
            'Movement.Transport': 29, 'Life.Marry': 30, 'UNKOWN': 34, 'Justice.Sentence': 31,
            'Justice.Execute': 25, 'Transaction.Transfer-Ownership': 33}
 
-ace_path = "ace_2005_td_v7/data/English/"
-
 def read_file(xml_path, text_path):
+    """
+    Read the text property in apf.xml file
+    """
+    print(xml_path)
     print(text_path)
     apf_tree = ET.parse(xml_path)
     root = apf_tree.getroot()
@@ -29,6 +31,7 @@ def read_file(xml_path, text_path):
     event_map = {}
     event = dict()
 
+    # get event information from .apf.xml file
     for events in root.iter("event"):
         ev_type = events.attrib["TYPE"] + "." + events.attrib["SUBTYPE"]
         for mention in events.iter("event_mention"):
@@ -36,9 +39,12 @@ def read_file(xml_path, text_path):
             anchor = mention.find("anchor")
             for charseq in anchor:
                 start = int(charseq.attrib["START"])
-                end = int(charseq.attrib["END"]) + 2
-                text = re.sub(r"\n", r"", charseq.text)
+                # +1 is because of half-opened string interval
+                end = int(charseq.attrib["END"]) + 1 
+                text = re.sub(r"\n", r" ", charseq.text)
+                # basic imformation of event
                 event_tupple = (ev_type, start, end, text)
+                # judge if there is already event mention (correference)
                 if event_tupple in event_ident:
                     sys.stderr.write("dulicapte event {}\n".format(ev_id))
                     event_map[ev_id] = event_ident[event_tupple]
@@ -48,154 +54,105 @@ def read_file(xml_path, text_path):
                 event_start[start] = ev_id
                 event_end[end] = ev_id
 
-    if "bn" in text_path:
-        text = ""
-        try:
-            doc = minidom.parse(text_path)
-        except:
-            print("akjfjkadsbfjksdbakjfnasdjfnasdk",text_path)
-        doc_root = doc.documentElement
-        turn_nodes = xml_parse.get_xmlnode(doc_root, "TURN")
-        for turn_node in turn_nodes:
-            text += " " + xml_parse.get_nodevalue(turn_node, 0).replace("\n", " ")
-        doc_id = xml_parse.get_nodevalue(
-            xml_parse.get_xmlnode(doc_root,
-            "DOCID")[0])
-        doc_type = xml_parse.get_nodevalue(
-            xml_parse.get_xmlnode(doc_root,
-            "DOCTYPE")[0])
-        date_time = xml_parse.get_nodevalue(
-            xml_parse.get_xmlnode(doc_root,
-            "DATETIME")[0])
-    
-        #print(text)
-        sub = len(doc_id) + len(doc_type) + len(date_time) + 6
-        tokens, anchors = read_document(text, sub,event_start, 
-                                        event_end, event_ident, event_map, event)
- 
-        return [tokens], [anchors]
-
-    if "bc" in text_path:
-        text = ""
-        try:
-            doc = minidom.parse(text_path)
-        except:
-            print("akjfjkadsbfjksdbakjfnasdjfnasdk",text_path)
-        doc_root = doc.documentElement
-        turn_nodes = xml_parse.get_xmlnode(doc_root, "TURN")
-        for turn_node in turn_nodes:
-            text += " " + xml_parse.get_nodevalue(turn_node, 0).replace("\n", " ")
-        doc_id = xml_parse.get_nodevalue(
-            xml_parse.get_xmlnode(doc_root,
-            "DOCID")[0])
-        doc_type = xml_parse.get_nodevalue(
-            xml_parse.get_xmlnode(doc_root,
-            "DOCTYPE")[0])
-        date_time = xml_parse.get_nodevalue(
-            xml_parse.get_xmlnode(doc_root,
-            "DATETIME")[0])
-    
-        #print(text)
-        sub = len(doc_id) + len(doc_type) + len(date_time) + 6
-        tokens, anchors = read_document(text, sub,event_start, 
-                                        event_end, event_ident, event_map, event)
- 
-        return [tokens], [anchors]
- 
-    elif "nw" in text_path or "GETTINGPO" in text_path:
+    # transform the .sgm file (.xml file actually) to string and excluds tags; using minidom instead of ElementTree (better nodes information representing ablility)
+    text = ""
+    str_empty = ""
+    sub = 0
+    try:
         doc = minidom.parse(text_path)
-        doc_root = doc.documentElement
-        text_node = xml_parse.get_xmlnode(doc_root, "TEXT")[0]
-        text = xml_parse.get_nodevalue(text_node)
-        doc_id = xml_parse.get_nodevalue(
-            xml_parse.get_xmlnode(doc_root,
-            "DOCID")[0])
-        doc_type = xml_parse.get_nodevalue(
-            xml_parse.get_xmlnode(doc_root,
-            "DOCTYPE")[0])
-        date_time = xml_parse.get_nodevalue(
-            xml_parse.get_xmlnode(doc_root,
-            "DATETIME")[0])
-        try:
-            head_line = xml_parse.get_nodevalue(
-                xml_parse.get_xmlnode(doc_root,
-                                      "HEADLINE")[0]).replace("\n", " ")
-            sub = len(doc_id) + len(doc_type) + len(date_time) + len(head_line) + 8
-        except:
-            sub = len(doc_id) + len(doc_type) + len(date_time) + 6
-        tokens, anchors = read_document(text, sub,event_start, 
-                                        event_end, event_ident, event_map, event)
- 
-        return [tokens], [anchors]
+    except:
+        print("Failed",text_path)
+    doc_root = doc.documentElement
+    root_children = doc_root.childNodes
+    for root_child in root_children: 
+        if root_child.nodeName == "#text":
+            str_empty = " " * len(root_child.nodeValue)
+            text += str_empty
+        elif root_child.nodeName == "DOCID" or root_child.nodeName == "DOCTYPE" or root_child.nodeName == "DATETIME":
+            sub += len(root_child.childNodes[0].nodeValue)
+        elif root_child.nodeName == "BODY": 
+            body_children = root_child.childNodes
+            for body_child in body_children: 
+                if body_child.nodeName == "#text": 
+                    str_empty = " " * len(body_child.nodeValue)
+                    text += str_empty
+                elif body_child.nodeName == "HEADLINE":
+                    # substitute whitespaces for HEADLINE
+                    str_empty = " " * len(body_child.childNodes[0].nodeValue)
+                    text += str_empty
+                elif body_child.nodeName == "TEXT":
+                    text_children = body_child.childNodes
+                    for text_child in text_children:
+                        if text_child.nodeName == "#text":
+                            text += text_child.nodeValue.replace("\n", " ")
+                        elif text_child.nodeName == "TURN":
+                            turn_children = text_child.childNodes
+                            for turn_child in turn_children:
+                                if turn_child.nodeName == "SPEAKER":
+                                    text += turn_child.childNodes[0].nodeValue
+                                elif turn_child.nodeName == "#text":
+                                    text += turn_child.nodeValue.replace("\n", " ")
+                        elif text_child.nodeName == "POST":
+                            post_children = text_child.childNodes
+                            for post_child in post_children:
+                                if post_child.nodeName == "POSTER" or post_child.nodeName == "POSTDATE":
+                                    str_empty = " " * len(post_child.childNodes[0].nodeValue)
+                                    text += str_empty
+                                elif post_child.nodeName == "#text":
+                                    text += post_child.nodeValue.replace("\n", " ")
 
-    elif "wl" in text_path:
-        doc = minidom.parse(text_path)
-        doc_root = doc.documentElement
-        post_node = xml_parse.get_xmlnode(doc_root, "POST")[0]
-        text = xml_parse.get_nodevalue(post_node, 4)
-        doc_id = xml_parse.get_nodevalue(
-            xml_parse.get_xmlnode(doc_root,
-            "DOCID")[0])
-        doc_type = xml_parse.get_nodevalue(
-            xml_parse.get_xmlnode(doc_root,
-            "DOCTYPE")[0])
-        date_time = xml_parse.get_nodevalue(
-            xml_parse.get_xmlnode(doc_root,
-            "DATETIME")[0])
-        poster = xml_parse.get_nodevalue(
-            xml_parse.get_xmlnode(doc_root,
-            "POSTER")[0])
-        post_date = xml_parse.get_nodevalue(
-            xml_parse.get_xmlnode(doc_root,
-            "POSTDATE")[0])
-        sub = len(doc_id) + len(doc_type) + len(date_time) + len(poster) + len(post_date)
-        try:
-            head_line = xml_parse.get_nodevalue(
-                xml_parse.get_xmlnode(doc_root,
-                                      "HEADLINE")[0]).replace("\n", " ")
-            sub = sub + len(head_line) + 10
-        except:
-            sub = sub + 8
-        tokens, anchors = read_document(text, sub,event_start, 
-                                        event_end, event_ident, event_map, event)
- 
-        return [tokens], [anchors]
+    tokens, anchors = read_document(text, sub, event_start, event_end, event_ident, event_map, event)
+    return [tokens], [anchors]                                
 
 def read_document(doc, sub, event_start, event_end, event_ident, event_map, event):
-    regions = []
+    """
+    Transform the xml file to tokens and anchors
+    """
     tokens = []
     anchors = []
-    check= 0
-    offset = 0
     current = 0
+
+    # In MARKETVIEW_20050206.2009.sgm "&amp;" occurs in HEADLINE and is transformed to "&"
+    if "MARKETVIEW_20050206.2009-EV1-1" in event: 
+        sub += 4 
     for i in range(len(doc)):
+
+        #Because of the XML transforming of "&amp;" to "&"
+        if doc[i] == "&":
+            sub += 4
+
+            # these files consider "&amp;" as 1 character
+            if "CNN_ENG_20030616_130059.25-EV1-1" in event or "CNN_CF_20030304.1900.04-EV15-1" in event or "BACONSREBELLION_20050226.1317-EV2-1" in event:
+                sub -= 4 
+
         if i+sub in event_start:
-            inc = 0
-            new = clean_str(doc[current:i])
-            regions.append(new)
+
+            # clear str: e.g. removing special chars; doc[x:y]: half-opened; clean_str will not influence the index.
+            new = clean_str(doc[current:i]) 
             tokens += new.split()
-            check = 1
-            anchors += [0 for _ in range(len(new.split()))]
-            inc = 0
+
+            # init anchors with 0 for a special range; '_' serves as a throwaway variable name.
+            anchors += [0 for _ in range(len(new.split()))] 
             current = i
             ent = event_start[i+sub]
-            event[ent][2] += offset + inc
-        if i+sub in event_end:
+        if i+sub in event_end: 
             ent = event_end[i+sub]
-            event[ent][3] += offset
-            new = clean_str(doc[event[ent][2]-sub : event[ent][3]-sub])
-            assert new.replace(" ", "") == event[ent][4] or new == event[ent][4] or new.replace(" ","_")\
-            ,"loi text: " + new + " ," + event[ent][4] +" " + str(event[ent][2]-sub) + " " + str(event[ent][3]-sub)
-            regions.append(new)
-            tokens += [new.replace(" ", "")]
-            anchors += [EVENT_MAP[event[ent][1]]]
-            offset += inc
-            current = i 
+            if ent == "AGGRESSIVEVOICEDAILY_20041208.2133-EV4-1":
+                tokens += ["q&a"]
+                anchors += [EVENT_MAP["Contact.Meet"]]
+                current = i
+            else: 
+                new = clean_str(doc[event[ent][2]-sub : event[ent][3]-sub])
+
+                # the statement after "," is the message throwed when condition is false; very useful checking step;
+                assert new == event[ent][4] or new == event[ent][4].lower() \
+                ,"Error: " + new + " ," + event[ent][4] +" " + str(event[ent][2]-sub) + " " + str(event[ent][3]-sub) 
+                tokens += [new.replace(" ", "")]
+                anchors += [EVENT_MAP[event[ent][1]]]
+                current = i 
     new = clean_str(doc[current : ])
-    regions.append(new)
     tokens += new.split()
     anchors += [0 for _ in range(len(new.split()))]
-    doc = "".join(regions)
     assert len(tokens) == len(anchors),"sai cmnr"
     return tokens, anchors
 
@@ -204,9 +161,11 @@ def encode_corpus(folder_path):
     files = []
     with open(file_list) as f:
         for line in f:
+            # strip(): remove leading and trailing chars (whitespace default) and return copy of original str
+            # split(): split the str into a list based on the chars passed (whitespace default)
             map = line.strip().split()
             if len(map) != 3: continue
-            files.append((map[0], map[1].split(",")[-1]))
+            files.append((map[0], map[1].split(",")[-1])) # -1 is the last elemet 
     return files
 
 def read_corpus(folder_path):
@@ -215,12 +174,10 @@ def read_corpus(folder_path):
     tokens, anchors = [], []
     for (file, path) in file_list:
         file_path = os.path.join(folder_path, path, file)
-        print(file_path)
         tok, anc = read_file(file_path + ".apf.xml", file_path + ".sgm")
         count += 1
         tokens += tok
         anchors += anc
-    #print(count, len(event_type))
     return tokens, anchors
 
 def clean_str(string, TREC=False):
@@ -228,58 +185,50 @@ def clean_str(string, TREC=False):
     Tokenization/string cleaning for all datasets except for SST.
     Every dataset is lower cased except for TREC
     """
-    string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)  
-    string = re.sub(r"\'m", r" 'm", string)
-    string = re.sub(r"\'s", " \'s", string) 
-    string = re.sub(r"\'ve", " \'ve", string) 
-    string = re.sub(r"n\'t", " n\'t", string) 
-    string = re.sub(r"\'re", " \'re", string) 
-    string = re.sub(r"\'d", " \'d", string) 
-    string = re.sub(r"\'ll", " \'ll", string) 
-    string = re.sub(r"\.", " <dot>", string)
-    string = re.sub(r"\,", r" <dot> ", string) 
+    string = re.sub("[^A-Za-z0-9().,!?'`-]&", " ", string)  # ^ means matching any char not here
+    # string = re.sub("'m", " 'm", string) 
+    # string = re.sub("'s", " 's", string) 
+    # string = re.sub("'ve", " 've", string) 
+    # string = re.sub("n't", " n't", string) 
+    # string = re.sub("'re", " 're", string) 
+    # string = re.sub("'d", " 'd", string) 
+    # string = re.sub("'ll", " 'll", string) 
+    string = re.sub("``", " <dot> ", string)
+    string = re.sub("''", " <dot> ", string)
+    string = re.sub(r"\"", " <dot> ", string) 
+    string = re.sub(r"\.", " <dot> ", string)
+    string = re.sub(r"\,", " <dot> ", string) 
     string = re.sub(r"!", " <dot> ", string) 
     string = re.sub(r"\(", " <dot> ", string) 
     string = re.sub(r"\)", " <dot> ", string) 
-    string = re.sub(r"\?", " <dot> ", string) 
+    string = re.sub(r"\?", " <dot> ", string)
+    string = re.sub(r"\_", " <dot> ", string) 
     string = re.sub(r"\s{2,}", " ", string)
     return string.strip() if TREC else string.strip().lower()
 
 if __name__ == "__main__":
-    test = r"/home/jeovach/PycharmProjects/ed_ace/ace_2005_td_v7/data/English/nw/fp2/AFP_ENG_20030630.0741"
-    #read_file(test+".apf.xml", test+".sgm", event_type = [])
-    tokens, anchors  = read_corpus(
-        "../ace_2005_td_v7/data/English/bn")
-    t, a = read_corpus(
-        "../ace_2005_td_v7/data/English/nw")
-    tokens += t
-    anchors += a
-    pickle.dump(tokens, open("../tokens1.bin","wb"))
-    pickle.dump(anchors, open("../anchors1.bin", "wb"))
     
-    '''
-    t, a = read_corpus(
-        "../ace_2005_td_v7/data/English/bc")
-    tokens = t
-    anchors = a
-    pickle.dump(tokens, open("tokens2.bin","wb"))
-    pickle.dump(anchors, open("anchors2.bin", "wb"))
-    '''
+    tokens_bn, anchors_bn  = read_corpus("./script/ACE2005ENG/orig/bn")
+    pickle.dump(tokens_bn, open("./preprocessing/tokens_bn.bin","wb"))
+    pickle.dump(anchors_bn, open("./preprocessing/anchors_bn.bin", "wb"))
+    
+    tokens_nw, anchors_nw  = read_corpus("./script/ACE2005ENG/orig/nw")
+    pickle.dump(tokens_nw, open("./preprocessing/tokens_nw.bin","wb"))
+    pickle.dump(anchors_nw, open("./preprocessing/anchors_nw.bin", "wb"))
 
+    tokens_bc, anchors_bc = read_corpus("./script/ACE2005ENG/orig/bc")
+    pickle.dump(tokens_bc, open("./preprocessing/tokens_bc.bin","wb"))
+    pickle.dump(anchors_bc, open("./preprocessing/anchors_bc.bin", "wb"))
     
-    t, a = read_corpus(
-        "../ace_2005_td_v7/data/English/cts")
-    tokens = t
-    anchors = a
-    pickle.dump(tokens, open("tokens2.bin","wb"))
-    pickle.dump(anchors, open("anchors2.bin", "wb"))
-    '''
-    t, a = read_corpus(
-        "../ace_2005_td_v7/data/English/wl")
-    tokens = t
-    anchors = a
-    pickle.dump(tokens, open("../tokens2.bin","wb"))
-    pickle.dump(anchors, open("../anchors2.bin", "wb"))
-    '''
+    tokens_cts, anchors_cts = read_corpus("./script/ACE2005ENG/orig/cts")
+    pickle.dump(tokens_cts, open("./preprocessing/tokens_cts.bin","wb"))
+    pickle.dump(anchors_cts, open("./preprocessing/anchors_cts.bin", "wb"))
+
+    tokens_wl, anchors_wl = read_corpus("./script/ACE2005ENG/orig/wl")
+    pickle.dump(tokens_wl, open("./preprocessing/tokens_wl.bin","wb"))
+    pickle.dump(anchors_wl, open("./preprocessing/anchors_wl.bin", "wb"))
+
+    print("1")
+    
 
 
