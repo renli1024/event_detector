@@ -4,4 +4,4 @@ runs/
 script/GoogleNews-vectors-negative300.bin
 script/ACE2005ENG/
 .vscode/
-
+.DS_Store
