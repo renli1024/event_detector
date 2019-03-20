@@ -16,8 +16,8 @@ class config():
 
 
 class ed_model(object):
-    def __init__(
-            self, config, vocab_length, vectors, l2_reg_lambda=0.003):
+    def __init__(self, config, vocab_length, vectors, l2_reg_lambda=0.003):
+        # vectors arg is word vector
         self.config = config
         self.input_x = tf.placeholder(tf.int32,
                                       [None, self.config.sequence_length], name="input_x")
@@ -32,54 +32,62 @@ class ed_model(object):
 
 
     def add_embedding(self, vectors):
+        # vectors shape: (14037, 300) 
         # construct the look-up table
         initial = tf.constant(vectors, dtype=tf.float32)
         with tf.variable_scope('embedded_layer'):
             WV = tf.get_variable('word_vectors', initializer=initial)
-            wv = tf.nn.embedding_lookup(WV, self.input_x)
+            wv = tf.nn.embedding_lookup(WV, self.input_x) # input_x shape: (50, 31), wv shape: (50, 31, 300)
             postion_embedding = tf.get_variable("Pos_emb",
                                                 shape=[self.config.sequence_length,
                                                        self.config.position_embedded_size],
-                                                dtype=tf.float32)
-            # split the lookup-table tensor into smaller tensors
-            wv = [tf.squeeze(x, [1]) for x in tf.split(axis=1, num_or_size_splits=self.config.sequence_length, value=wv)]
+                                                dtype=tf.float32) # shape: (31, 50)
+            # split (50, 31, 300) tensor to 31 (50, 1, 300) tensors,
+            # then squeeze each (50, 1, 300) tensor to (50, 300)
+            wv = [tf.squeeze(x, [1]) for x in tf.split(axis=1, 
+            num_or_size_splits=self.config.sequence_length, value=wv)]
+
             inputs = []
+            # concatenate the word vector features with position features
             for v in range(len(wv)):
-                inputs.append(tf.concat(axis=1, values=(wv[v],
+                temp = tf.concat(axis=1, values=[wv[v],
                                             tf.reshape(tf.tile(postion_embedding[v], [self.size_batch]),
-                                                       [self.size_batch, self.config.position_embedded_size]))))
+                                                       [self.size_batch, self.config.position_embedded_size])])
+                inputs.append(temp)
+            # transform tensor shape (31, 50, 500) to (50, 31, 500)
             inputs = tf.transpose(tf.stack(inputs), perm=[1,0,2])
         return tf.expand_dims(inputs, [-1])
 
 
     def add_model(self, l2_reg_lambda):
         """
-
-        :param l2_reg_lambda: used to avoid overfitting
-                self.input_x: list of tensor len = sentence_length, each tensor has
-                    shape = [batch_size, embed_size]
-        :return:
+        l2_reg_lambda: used to avoid overfitting
+        self.input_x: list of tensor len = sentence_length, each tensor has
+        shape = [batch_size, embed_size]
+        return:
         """
         # Create a convolution + maxpool layer for each filter size
         num_filters_total = 0
         pooled_outputs = []
         W = []
         b = []
-        postion_embedding = []
+        # filter_size: 2, 3, 4
         for  filter_size in self.config.filter_sizes:
             with tf.name_scope("Conv-maxpool-%s" % filter_size):
                 # Convolution Parameter
+                # [2, 350, 1, 150]
                 filter_shape = [filter_size,
                                 self.config.embedding_size + self.config.position_embedded_size,
-                                1, self.config.feature_size]
-                W.append(tf.get_variable("W_%d" %filter_size, 
-                                         shape=filter_shape,
-                                         dtype=tf.float32))
-                b.append(tf.get_variable("b_%d" %filter_size, 
-                                         shape=[self.config.feature_size],
-                                         dtype=tf.float32))
+                                1, self.config.feature_size]  
+
+                # W_2.shape = [2, 350, 1, 150]
+                W.append(tf.get_variable("W_%d" % filter_size, 
+                        shape=filter_shape, dtype=tf.float32)) 
+                # b_shape = [150]
+                b.append(tf.get_variable("b_%d" % filter_size, 
+                        shape=[self.config.feature_size], dtype=tf.float32))
  
-               # Convolution Layer                                
+               # Convolution Layer                              
                 conv = tf.nn.conv2d(
                     self.feature,
                     W[-1],
@@ -89,9 +97,12 @@ class ed_model(object):
 
                 # Apply nonlinearity
                 h = tf.nn.relu(tf.nn.bias_add(conv, b[-1]), name="relu")
+
+                # ??
                 tf.add_to_collection("loss", tf.nn.l2_loss(W[-1]) + tf.nn.l2_loss(b[-1]))
 
                 # Max-pooling over the outputs
+                # ksize??
                 pooled = tf.nn.max_pool(
                     h,
                     ksize=[1, self.config.sequence_length - filter_size + 1, 1, 1],

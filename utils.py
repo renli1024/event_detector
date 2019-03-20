@@ -8,19 +8,35 @@ def load_data(window, label):
     return vectors, sents, anchor
 
 def data_iterator(orig_X, orig_y=None, batch_size=50, label_size=2, shuffle=True, split=1700):
+    # train set
+    # orig_X: train set of windows, type: nparray, shape: (37723, 31), 
+    # orig_y: anchor types of windows, type: nparray, shape: (37723, 34), axis 1: one hot code of 34 anchor type
+    print(orig_X[0:10])
+    print(orig_y[0:10])
+    print(1)
+
     if split:
+        # what do these code do ?
         y_label = np.argmax(orig_y, axis=1)
+        # get the windows which are acnhor, get windows anchor type
         X = list(orig_X[y_label != 0])
         y = list(orig_y[y_label != 0])
+        # X = np.array(orig_X[y_label != 0])
+        # y = np.array(orig_y[y_label != 0])
+        print(np.shape(np.array(X)))
+        print(np.shape(np.array(y)))
         rand = []
         for x in range(split):
             i = random.randint(0, len(y_label) - 1)
-            while y_label[i] != 0 or i in rand:
-                i = random.randint(0,len(y_label) - 1)
+            while y_label[i] != 0 or i in rand: # "i in rand" has no effect
                 y.append(orig_y[i])
-                X.append(orig_X[i])
-    X = np.array(X)
-    y = np.array(y)
+                X.append(orig_X[i]) 
+                i = random.randint(0,len(y_label) - 1)   
+        X = np.array(X)
+        y = np.array(y)
+        print(np.shape(X))
+        print(np.shape(y))
+        print(1)
   # Optionally shuffle the data before training
     if shuffle: # dao thu tu
         indices = np.random.permutation(len(X))

@@ -4,6 +4,9 @@ import gensim, os
 import tensorflow as tf
 
 def create_document_iter(tokens):
+    """
+    transform the token list into token string, one article's tokens forms one string.
+    """
     for doc in tokens:
         raw_doc = ""
         for word in doc:
@@ -18,16 +21,19 @@ def encode_dictionary(input_iter, min_frequence=0, max_document_length=10000):
     return vocab_processor
 
 def encode_window(tokens, anchors, vocab_processor):
-    # enconde windows; labels: the anchor property of center word of window; 
+    # enconde windows; labels: the anchor property of center word of window;
+    # windows type: list, windows rank: 2, axis 0: central tokens' windows, axis 1: the tokens in the window
+    # labels type: list, labels rank: 1, axis 0: each token's anchor type
     windows, window, labels = [], [], []
     unk = vocab_processor.vocabulary_._mapping["<UNK>"]
     j = 0
     for doc in tokens:
         for tok in np.arange(len(doc)):
-            for i in np.arange(-15, 16): # the length of windows is 30
+            for i in np.arange(-15, 16): # window length is 31, index 0 is central word
                 if i + tok < 0 or i + tok >= len(doc):
                     window.append(unk)
                 else:
+                    # add the token index into the window
                     window.append(vocab_processor.vocabulary_._mapping.get(doc[i + tok], unk))
             windows.append(window)
             labels.append(anchors[j][tok]) 
@@ -39,7 +45,7 @@ def encode_window(tokens, anchors, vocab_processor):
 
 def load_bin_vec(fname, vocab):
     """
-        Loads 300x1 word vecs from Google (Mikolov) word2vec
+    Load 300x1 word vecs from Google (Mikolov) word2vec. Return the list of word vector of corresponding tokens in the same indices.
     """
     word_vecs = np.zeros((len(vocab), 300))
     count = 0
@@ -69,16 +75,20 @@ if __name__ == "__main__":
     tokens2 = pickle.load(open("./preprocessing/tokens_bn.bin", "rb"))
     anchors1 = pickle.load(open("./preprocessing/anchors_nw.bin", "rb"))
     anchors2 = pickle.load(open("./preprocessing/anchors_bn.bin", "rb"))
-    input_iter = create_document_iter(tokens1 + tokens2)
-    vocab = encode_dictionary(input_iter)
-    
+    input_iter = create_document_iter(tokens1 + tokens2) # add along axis 0
+    vocab = encode_dictionary(input_iter) # vocab is the dictionary which maps the numbers to tokens
+    # vocat_list: mapping list between indices and tokens
     vocab_list = list(vocab.vocabulary_._mapping.keys())
     # word_vecs = load_bin_vec("./preprocessing/GoogleNews-vectors-negative300.bin", vocab_list)
     # pickle.dump(word_vecs, open("./preprocessing/vector.bin", "wb"))
 
     # word_vecs = pickle.load(open("./preprocessing/vector.bin", "rb"))
-    
+    # winows中封装的是词的序号，vector.bin中的词向量是按照相同的序号排列的。
     windows1, labels1 = encode_window(tokens1, anchors1, vocab)
+    w1 = np.array(windows1)
+    l1 = np.array(labels1)
+    print(np.shape(w1))
+    print(np.shape(l1))
     windows2, labels2 = encode_window(tokens2, anchors2, vocab)    
     pickle.dump(windows1, open("./preprocessing/windows1.bin", "wb"))
     pickle.dump(labels1, open("./preprocessing/labels1.bin", "wb"))

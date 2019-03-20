@@ -207,7 +207,13 @@ def clean_str(string, TREC=False):
     return string.strip() if TREC else string.strip().lower()
 
 if __name__ == "__main__":
-    
+
+    # tk = pickle.load(open("./preprocessing/tokens_bn.bin","rb"))
+    # ac = pickle.load(open("./preprocessing/anchors_bn.bin", "rb"))
+ 
+    # tokens type: list, tokens rank: 2, axis 0 indicates each articles, axis 1 indicates the tokens in article
+    # anchors type: list, anchors rank: 2, axis 0 indicates each articles, axis 1 indicates the anchor information of corresponding tokens in article
+
     tokens_bn, anchors_bn  = read_corpus("./script/ACE2005ENG/orig/bn")
     pickle.dump(tokens_bn, open("./preprocessing/tokens_bn.bin","wb"))
     pickle.dump(anchors_bn, open("./preprocessing/anchors_bn.bin", "wb"))

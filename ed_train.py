@@ -17,12 +17,15 @@ FLAGS = tf.flags.FLAGS
 
 if __name__ == '__main__':
     vectors, sents, anchor = load_data("./preprocessing/windows1.bin", "./preprocessing/labels1.bin")
+    print(vectors.shape)
     _, sents_test1, anchor_test1 = load_data("./preprocessing/windows2.bin", "./preprocessing/labels2.bin")
     '''
     _, sent_test2, anchor_test2 = load_data("windows3.bin", "labels3.bin")
     _, sent_test3, anchor_test3 = load_data("windows4.bin", "labels4.bin")
     '''
-    # sents are the windows
+    # sents shape: (53891, 31)
+    # anchor shape: (53891,)
+    # vectors shape: (14037, 300)
     sents = np.array(sents)
     anchor = np.array(anchor)
     vocab_length = len(vectors)
@@ -42,9 +45,9 @@ if __name__ == '__main__':
                                anchor_shuffled[test_sample_index:]
     sent_dev, anchor_dev = data_evaluate(sent_dev, anchor_dev)
     sent_test, anchor_test = data_evaluate(sent_test, anchor_test)
-    
+
     anchor_train_std = np.zeros((len(anchor_train), 34))
-    anchor_train_std[range(len(anchor_train)), anchor_train] = 1
+    anchor_train_std[range(len(anchor_train)), anchor_train] = 1 
     anchor_dev_std = np.zeros((len(anchor_dev), 34))
     anchor_dev_std[range(len(anchor_dev)), anchor_dev] = 1
     anchor_test_std = np.zeros((len(anchor_test), 34))
@@ -65,7 +68,7 @@ if __name__ == '__main__':
             allow_soft_placement=FLAGS.allow_soft_placement,
             log_device_placement=FLAGS.log_device_placement)
         sess = tf.Session(config=session_conf)
-        with sess.as_default():
+        with sess.as_default(): # 可以去掉？
             cf = config()
             cnn = ed_model(cf, vocab_length, vectors )
             # count training steps
@@ -118,6 +121,9 @@ if __name__ == '__main__':
             """
             A single training step
             """
+            test = np.array(x_batch)
+            # print(np.shape(test))
+            # print(1)
             global e
             feed_dict = {
                 cnn.input_x: x_batch,
@@ -181,10 +187,11 @@ if __name__ == '__main__':
         for e in np.arange(FLAGS.num_epochs):
             if stop == True:
                 break
+            # x_batch shape: (n, 31)
             for step, (x_batch, y_batch) in enumerate(data_iterator(
                         sent_train, anchor_train_std, cf.batch_size)):
                 # Training loop. For each batch...
-
+                print()
                 size_batch = len(x_batch)
                 train_step(x_batch, y_batch, size_batch)
                 current_step = tf.train.global_step(sess, global_step)
