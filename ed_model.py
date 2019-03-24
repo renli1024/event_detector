@@ -24,7 +24,7 @@ class ed_model(object):
         self.input_y = tf.placeholder(tf.float32,
                                       [None, self.config.triger_size],
                                       name="input_y")
-        self.size_batch = tf.placeholder(tf.int32, name="size_batch")
+        self.size_batch = tf.placeholder(tf.int32, name="size_batch") # equals 50
         self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
 
         self.feature = self.add_embedding(vectors)
@@ -37,26 +37,35 @@ class ed_model(object):
         initial = tf.constant(vectors, dtype=tf.float32)
         with tf.variable_scope('embedded_layer'):
             WV = tf.get_variable('word_vectors', initializer=initial)
-            wv = tf.nn.embedding_lookup(WV, self.input_x) # input_x shape: (50, 31), wv shape: (50, 31, 300)
-            postion_embedding = tf.get_variable("Pos_emb",
-                                                shape=[self.config.sequence_length,
-                                                       self.config.position_embedded_size],
-                                                dtype=tf.float32) # shape: (31, 50)
-            # split (50, 31, 300) tensor to 31 (50, 1, 300) tensors,
-            # then squeeze each (50, 1, 300) tensor to (50, 300)
-            wv = [tf.squeeze(x, [1]) for x in tf.split(axis=1, 
-            num_or_size_splits=self.config.sequence_length, value=wv)]
+            wv = tf.nn.embedding_lookup(WV, self.input_x) # input_x shape: (50, 31), so wv shape: (50, 31, 300)
+        return tf.expand_dims(wv, [-1])
+        #     position_embedding = tf.get_variable("Pos_emb",
+        #                                         shape=[self.config.sequence_length,
+        #                                                self.config.position_embedded_size],
+        #                                         dtype=tf.float32) # shape: (31, 50)
+        #     # split wv (50, 31, 300) to 31 (50, 1, 300) tensors,
+        #     # squeeze each (50, 1, 300) tensor to (50, 300), then form a list
+        #     wv = [tf.squeeze(x, [1]) for x in tf.split(axis=1, 
+        #     num_or_size_splits=self.config.sequence_length, value=wv)]
 
-            inputs = []
-            # concatenate the word vector features with position features
-            for v in range(len(wv)):
-                temp = tf.concat(axis=1, values=[wv[v],
-                                            tf.reshape(tf.tile(postion_embedding[v], [self.size_batch]),
-                                                       [self.size_batch, self.config.position_embedded_size])])
-                inputs.append(temp)
-            # transform tensor shape (31, 50, 500) to (50, 31, 500)
-            inputs = tf.transpose(tf.stack(inputs), perm=[1,0,2])
-        return tf.expand_dims(inputs, [-1])
+        #     # concatenate the word vector features with position features
+        #     inputs = []
+        #     for v in range(len(wv)):
+        #         position_features = tf.tile(position_embedding[v], [self.size_batch]) # shape(2500, )
+        #         # transform shape to (50, 50)
+        #         reshaped_pos_features = tf.reshape(position_features, 
+        #                                 [self.size_batch, self.config.position_embedded_size])
+        #         # concatenate (50, 300) and (50, 50) into (50, 350)
+        #         concat_features = tf.concat(axis=1, values=[wv[v], reshaped_pos_features])
+        #         inputs.append(concat_features)
+
+        #     # stack tensor (50, 350) in list into a higher rank tensor of shape (31, 50, 350)
+        #     # transpose tensor shape (31, 50, 350) to (50, 31, 350)
+        #     inputs = tf.transpose(tf.stack(inputs), perm=[1,0,2])
+        #     # temp = tf.expand_dims(inputs, [-1])
+        #     # print(temp.shape)
+        # # final shape (50, 31, 350, 1)
+        # return tf.expand_dims(inputs, [-1])
 
 
     def add_model(self, l2_reg_lambda):
@@ -71,16 +80,14 @@ class ed_model(object):
         pooled_outputs = []
         W = []
         b = []
-        # filter_size: 2, 3, 4
+        # filter_size: 2/3/4
         for  filter_size in self.config.filter_sizes:
             with tf.name_scope("Conv-maxpool-%s" % filter_size):
                 # Convolution Parameter
-                # [2, 350, 1, 150]
-                filter_shape = [filter_size,
-                                self.config.embedding_size + self.config.position_embedded_size,
-                                1, self.config.feature_size]  
-
-                # W_2.shape = [2, 350, 1, 150]
+                # [2/3/4, 300, 1, 150]
+                filter_shape = [filter_size, self.config.embedding_size, 1, self.config.feature_size]
+                  
+                # W.shape = [2/3/4, 300, 1, 150]
                 W.append(tf.get_variable("W_%d" % filter_size, 
                         shape=filter_shape, dtype=tf.float32)) 
                 # b_shape = [150]

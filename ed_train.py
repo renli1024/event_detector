@@ -121,9 +121,6 @@ if __name__ == '__main__':
             """
             A single training step
             """
-            test = np.array(x_batch)
-            # print(np.shape(test))
-            # print(1)
             global e
             feed_dict = {
                 cnn.input_x: x_batch,
@@ -191,7 +188,6 @@ if __name__ == '__main__':
             for step, (x_batch, y_batch) in enumerate(data_iterator(
                         sent_train, anchor_train_std, cf.batch_size)):
                 # Training loop. For each batch...
-                print()
                 size_batch = len(x_batch)
                 train_step(x_batch, y_batch, size_batch)
                 current_step = tf.train.global_step(sess, global_step)
