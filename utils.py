@@ -56,8 +56,7 @@ def data_iterator(orig_X, orig_y=None, batch_size=50, label_size=2, shuffle=True
         yield x, y
         total_processed_examples += len(x)
   # Sanity check to make sure we iterated over all the dataset as intended
-    assert total_processed_examples == len(data_X), 'Expected {} and processed {}'.format(len(data_X), 
-                                                                                          total_processed_examples)
+    assert total_processed_examples == len(data_X), 'Expected {} and processed {}'.format(len(data_X), total_processed_examples)
 
 def data_evaluate(x_dev, y_dev, label_size=2, shuffle=False):
     if shuffle:  # dao thu tu

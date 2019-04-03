@@ -64,20 +64,20 @@ if __name__ == '__main__':
           %( 300, sent_train.shape[0], sent_dev.shape[0]))
 
     with tf.Graph().as_default():
-        session_conf = tf.ConfigProto(
-            allow_soft_placement=FLAGS.allow_soft_placement,
-            log_device_placement=FLAGS.log_device_placement)
+        session_conf = tf.ConfigProto(allow_soft_placement=FLAGS.allow_soft_placement,
+                                      log_device_placement=FLAGS.log_device_placement)
         sess = tf.Session(config=session_conf)
-        with sess.as_default(): # 可以去掉？
-            cf = config()
-            cnn = ed_model(cf, vocab_length, vectors )
-            # count training steps
-            global_step = tf.Variable(0, name="global_step", trainable=False)
-            # set optimizer 
-            optimizer = tf.train.AdamOptimizer(1e-3)
-            grads_and_vars = optimizer.compute_gradients(cnn.loss)
-            train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
+        # with sess.as_default(): # 可以去掉？——应该是的，语句块内没有eval()语句
+        cf = config()
+        cnn = ed_model(cf, vocab_length, vectors )
+        # count training steps
+        global_step = tf.Variable(0, name="global_step", trainable=False)
+        # set optimizer and get optimizing operation
+        optimizer = tf.train.AdamOptimizer(1e-3)
+        grads_and_vars = optimizer.compute_gradients(cnn.loss)
+        train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
+        # store the gradients and variables
         grad_summaries = []
         for g, v in grads_and_vars:
             if g is not None:
@@ -87,20 +87,20 @@ if __name__ == '__main__':
                 grad_summaries.append(sparsity_summary)
         grad_summaries_merged = tf.summary.merge(grad_summaries)
 
-        # Output directory for models and summaries
+        # print path of output directory of models and summaries
         timestamp = str(int(time.time()))
         out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
         print("Writing to {}\n".format(out_dir))
 
-        # Summaries for loss and accuracy
+        # Summaries for loss
         loss_summary = tf.summary.scalar("loss", cnn.loss)
 
-        # Train Summaries
+        # Train set Summaries
         train_summary_op = tf.summary.merge([loss_summary, grad_summaries_merged])
         train_summary_dir = os.path.join(out_dir, "summaries", "train")
         train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
 
-        # Dev summaries
+        # Dev set summaries
         dev_summary_op = tf.summary.merge([loss_summary])
         dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
         dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
@@ -112,10 +112,6 @@ if __name__ == '__main__':
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
         saver = tf.train.Saver()
-
-
-        # Initialize all variables
-        sess.run(tf.global_variables_initializer())
 
         def train_step(x_batch, y_batch, size_batch):
             """
@@ -132,8 +128,9 @@ if __name__ == '__main__':
                 [train_op, global_step, train_summary_op, cnn.loss],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            print("\rtraining:{}:epoch {} step {}, loss {:g}".format(time_str,e, step, loss))
+            print("training:{}, epoch {}, step {}, loss {:g}".format(time_str, e, step, loss))
             train_summary_writer.add_summary(summaries, step)
+
         final = []
         def dev_step(x_batch, y_batch):
             """
@@ -150,7 +147,7 @@ if __name__ == '__main__':
                 [train_op, global_step, train_summary_op, cnn.loss],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            print("\rdevolped: {}:epoch {} step {}, loss {:g}".format(time_str,e, step, loss))
+            print("devolped:{}, epoch {}, step {}, loss {:g}".format(time_str,e, step, loss))
             train_summary_writer.add_summary(summaries, step)
         
         def test_step(x, y_batch, y, writer=None):
@@ -179,15 +176,18 @@ if __name__ == '__main__':
                 return True
             else: return False
 
-        # Generate batches
+        # Initialize all variables
+        sess.run(tf.global_variables_initializer())
+
+        # train model
         stop = False
         for e in np.arange(FLAGS.num_epochs):
             if stop == True:
                 break
-            # x_batch shape: (n, 31)
+            # Generate batches. x_batch shape: (n, 31)
             for step, (x_batch, y_batch) in enumerate(data_iterator(
                         sent_train, anchor_train_std, cf.batch_size)):
-                # Training loop. For each batch...
+                # Training loop
                 size_batch = len(x_batch)
                 train_step(x_batch, y_batch, size_batch)
                 current_step = tf.train.global_step(sess, global_step)

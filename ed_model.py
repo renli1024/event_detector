@@ -25,7 +25,7 @@ class ed_model(object):
                                       [None, self.config.triger_size],
                                       name="input_y")
         self.size_batch = tf.placeholder(tf.int32, name="size_batch") # equals 50
-        self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
+        self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob") #equals 0.5
 
         self.feature = self.add_embedding(vectors)
         self.add_model(l2_reg_lambda)
@@ -105,11 +105,9 @@ class ed_model(object):
                 # Apply nonlinearity
                 h = tf.nn.relu(tf.nn.bias_add(conv, b[-1]), name="relu")
 
-                # ??
                 tf.add_to_collection("loss", tf.nn.l2_loss(W[-1]) + tf.nn.l2_loss(b[-1]))
 
-                # Max-pooling over the outputs
-                # ksize??
+                # Max-pooling over the inputs
                 pooled = tf.nn.max_pool(
                     h,
                     ksize=[1, self.config.sequence_length - filter_size + 1, 1, 1],
@@ -119,11 +117,11 @@ class ed_model(object):
                 pooled_outputs.append(pooled)
 
 
-        # Combine all the pooled features
-        num_filters_total = self.config.feature_size * len(self.config.filter_sizes)
-        triger_size = self.config.triger_size
+        # Combine all the pooled features ？？？
+        num_filters_total = self.config.feature_size * len(self.config.filter_sizes)  # 150*3
         self.h_pool = tf.concat(axis=2, values=pooled_outputs)
         self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])
+
         with tf.name_scope("dropout"):
             self.h_drop = tf.nn.dropout(self.h_pool_flat, self.dropout_keep_prob)
         with tf.name_scope("output"):
@@ -136,7 +134,7 @@ class ed_model(object):
             self.scores = tf.nn.xw_plus_b(self.h_drop, W2, b2, name="scores")
             self.predictions = tf.argmax(self.scores, 1, name="predictions")
 
-            # CalculateMean cross-entropy loss
+            # Calculate cross-entropy loss
             with tf.name_scope("loss"):
                 losses = tf.nn.softmax_cross_entropy_with_logits(logits=self.scores, labels=self.input_y)
                 self.loss = tf.reduce_mean(losses) + l2_reg_lambda * tf.add_n(tf.get_collection("loss")) / 2
