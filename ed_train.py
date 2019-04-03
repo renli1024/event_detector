@@ -109,8 +109,8 @@ if __name__ == '__main__':
         checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
         checkpoint_prefix = os.path.join(checkpoint_dir, "model")
         final_prefix = os.path.join(checkpoint_dir, "final")
-        if not os.path.exists(checkpoint_dir):
-            os.makedirs(checkpoint_dir)
+        # if not os.path.exists(checkpoint_dir):
+        #     os.makedirs(checkpoint_dir)
         saver = tf.train.Saver()
 
         def train_step(x_batch, y_batch, size_batch):
@@ -177,37 +177,48 @@ if __name__ == '__main__':
             else: return False
 
         # Initialize all variables
-        sess.run(tf.global_variables_initializer())
+        # sess.run(tf.global_variables_initializer())
 
-        # train model
-        stop = False
-        for e in np.arange(FLAGS.num_epochs):
-            if stop == True:
-                break
-            # Generate batches. x_batch shape: (n, 31)
-            for step, (x_batch, y_batch) in enumerate(data_iterator(
-                        sent_train, anchor_train_std, cf.batch_size)):
-                # Training loop
-                size_batch = len(x_batch)
-                train_step(x_batch, y_batch, size_batch)
-                current_step = tf.train.global_step(sess, global_step)
-                if current_step % FLAGS.evaluate_every == 0:
-                    print("\nDevolope:")
-                    for step, (x_d, y_d) in enumerate(data_iterator(
-                            sent_dev, anchor_dev_std, cf.batch_size)):
-                        dev_step(x_d, y_d)
-                    print("")
-                    print("Evaluate:")
-                    stop = test_step(sent_test, anchor_test, anchor_test_std)
-                    if stop == True:
-                        break
-                    print("")
-                if current_step % FLAGS.checkpoint_every == 0:
-                    path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-                    print("Saved model checkpoint to {}\n".format(path))
-        pickle.dump(final, open("final.bin", "wb"))
-        print("Evaluate:")
-        print("Training:")
+        # # train model
+        # stop = False
+        # for e in np.arange(FLAGS.num_epochs):
+        #     if stop == True:
+        #         break
+        #     # Generate batches. x_batch shape: (n, 31)
+        #     for step, (x_batch, y_batch) in enumerate(data_iterator(
+        #                 sent_train, anchor_train_std, cf.batch_size)):
+        #         # Training loop
+        #         size_batch = len(x_batch)
+        #         meta_model_path = os.path.abspath(os.path.join(os.path.curdir, "runs", "1553519498", "checkpoints", "final-7343.meta"))
+        #         restore_saver = tf.train.import_meta_graph(meta_model_path)
+        #         restore_saver.restore(sess, os.path.join(os.path.curdir, "runs", "1553519498", "checkpoints", "final-7343"))
+
+
+
+        #         train_step(x_batch, y_batch, size_batch)
+        #         current_step = tf.train.global_step(sess, global_step)
+        #         if current_step % FLAGS.evaluate_every == 0:
+        #             print("\nDevolope:")
+        #             for step, (x_d, y_d) in enumerate(data_iterator(
+        #                     sent_dev, anchor_dev_std, cf.batch_size)):
+        #                 dev_step(x_d, y_d)
+        #             print("")
+        #             print("Evaluate:")
+        #             stop = test_step(sent_test, anchor_test, anchor_test_std)
+        #             if stop == True:
+        #                 break
+        #             print("")
+        #         if current_step % FLAGS.checkpoint_every == 0:
+        #             path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+        #             print("Saved model checkpoint to {}\n".format(path))
+        # pickle.dump(final, open("final.bin", "wb"))
+        # print("Evaluate:")
+        # print("Training:")
+        # meta_model_path = os.path.abspath(os.path.join(os.path.curdir, "runs", "1553519498", "checkpoints", "final-7343.meta"))
+        # restore_saver = tf.train.import_meta_graph(meta_model_path)
+        # restore_saver.restore(sess, os.path.join(os.path.curdir, "runs", "1553519498", "checkpoints", "final-7343"))
+        restore_saver = tf.train.Saver()
+        restore_saver.restore(sess, os.path.join(os.path.curdir, "runs", "1553464436", "checkpoints", "final-7339"))
         test_step(sent_test, anchor_test, anchor_test_std)
         print("Test case 1:")
         test_step(sents_test1, anchor_test1, anchor_test1_std)
