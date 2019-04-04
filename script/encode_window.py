@@ -75,6 +75,8 @@ if __name__ == "__main__":
     tokens2 = pickle.load(open("./preprocessing/tokens_bn.bin", "rb"))
     anchors1 = pickle.load(open("./preprocessing/anchors_nw.bin", "rb"))
     anchors2 = pickle.load(open("./preprocessing/anchors_bn.bin", "rb"))
+    # print(tokens1[0])
+    # print(anchors1[0])
     input_iter = create_document_iter(tokens1 + tokens2) # add along axis 0
     vocab = encode_dictionary(input_iter) # vocab is the dictionary which maps the numbers to tokens
     # vocat_list: mapping list between indices and tokens
@@ -85,8 +87,8 @@ if __name__ == "__main__":
     # word_vecs = pickle.load(open("./preprocessing/vector.bin", "rb"))
     # winows中封装的是词的序号，vector.bin中的词向量是按照相同的序号排列的。
     windows1, labels1 = encode_window(tokens1, anchors1, vocab)
-    w1 = np.array(windows1)
-    l1 = np.array(labels1)
+    # w1 = np.array(windows1)
+    # l1 = np.array(labels1)
     # print(np.shape(w1))
     # print(np.shape(l1))
     windows2, labels2 = encode_window(tokens2, anchors2, vocab)    

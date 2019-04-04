@@ -37,7 +37,7 @@ class ed_model(object):
         initial = tf.constant(vectors, dtype=tf.float32)
         with tf.variable_scope('embedded_layer'):
             WV = tf.get_variable('word_vectors', initializer=initial)
-            wv = tf.nn.embedding_lookup(WV, self.input_x) # input_x shape: (50, 31), so wv shape: (50, 31, 300)
+            wv = tf.nn.embedding_lookup(WV, self.input_x) # input_x shape: (50, 31), so wv shape: (50, 31, 300), wv's shape is determined by input_x's shape
         return tf.expand_dims(wv, [-1])
         #     position_embedding = tf.get_variable("Pos_emb",
         #                                         shape=[self.config.sequence_length,
@@ -133,7 +133,6 @@ class ed_model(object):
             tf.add_to_collection("loss", tf.nn.l2_loss(W2) + tf.nn.l2_loss(b2))
             self.scores = tf.nn.xw_plus_b(self.h_drop, W2, b2, name="scores")
             self.predictions = tf.argmax(self.scores, 1, name="predictions")
-
             # Calculate cross-entropy loss
             with tf.name_scope("loss"):
                 losses = tf.nn.softmax_cross_entropy_with_logits(logits=self.scores, labels=self.input_y)

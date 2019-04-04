@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 import pickle, re, sys, os
 from lxml import etree
-import xml_parse
+# import xml_parse
 from xml.dom import minidom
 
 EVENT_MAP={'None': 0, 'Personnel.Nominate': 1, 'Contact.Phone-Write': 27, 'Business.Declare-Bankruptcy': 3,
@@ -54,7 +54,7 @@ def read_file(xml_path, text_path):
                 event_start[start] = ev_id
                 event_end[end] = ev_id
 
-    # transform the .sgm file (.xml file actually) to string and excluds tags; using minidom instead of ElementTree (better nodes information representing ablility)
+    # transform the .sgm file (.xml file essentially) to string and excluds tags; using minidom instead of ElementTree (better nodes information representing ablility)
     text = ""
     str_empty = ""
     sub = 0
@@ -171,6 +171,7 @@ def encode_corpus(folder_path):
 def read_corpus(folder_path):
     count = 0
     file_list = encode_corpus(folder_path)
+    print(file_list)
     tokens, anchors = [], []
     for (file, path) in file_list:
         file_path = os.path.join(folder_path, path, file)

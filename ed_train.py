@@ -17,7 +17,7 @@ FLAGS = tf.flags.FLAGS
 
 if __name__ == '__main__':
     vectors, sents, anchor = load_data("./preprocessing/windows1.bin", "./preprocessing/labels1.bin")
-    print(vectors.shape)
+    #print(vectors.shape)
     _, sents_test1, anchor_test1 = load_data("./preprocessing/windows2.bin", "./preprocessing/labels2.bin")
     '''
     _, sent_test2, anchor_test2 = load_data("windows3.bin", "labels3.bin")
@@ -26,6 +26,8 @@ if __name__ == '__main__':
     # sents shape: (53891, 31)
     # anchor shape: (53891,)
     # vectors shape: (14037, 300)
+    # print(sents[0])
+    # print(anchor[0])
     sents = np.array(sents)
     anchor = np.array(anchor)
     vocab_length = len(vectors)
@@ -161,10 +163,12 @@ if __name__ == '__main__':
                 cnn.dropout_keep_prob: 0.5,
                 cnn.size_batch : len(x)
             }
-            step, summaries, y_pred = sess.run(
-                [global_step, dev_summary_op, cnn.predictions],
+            step, summaries, y_pred, y_score = sess.run(
+                [global_step, dev_summary_op, cnn.predictions, cnn.scores],
                 feed_dict)
-            
+            # print(sess.run(tf.shape(x)))
+            # print(sess.run(tf.shape(y_score)))
+            # print(sess.run(tf.shape(y_pred)))
             time_str = datetime.datetime.now().isoformat()
             precision, recall, f1_score, status = precision_recall_fscore_support(y_batch, np.array(y_pred), labels=range(1,34), pos_label=None, average='micro')
             print("{}: step {}:".format(time_str, step))
@@ -219,6 +223,9 @@ if __name__ == '__main__':
         # restore_saver.restore(sess, os.path.join(os.path.curdir, "runs", "1553519498", "checkpoints", "final-7343"))
         restore_saver = tf.train.Saver()
         restore_saver.restore(sess, os.path.join(os.path.curdir, "runs", "1553464436", "checkpoints", "final-7339"))
+        # print(sent_test)
+        # print(anchor_test)
+        # print(anchor_test_std)
         test_step(sent_test, anchor_test, anchor_test_std)
         print("Test case 1:")
         test_step(sents_test1, anchor_test1, anchor_test1_std)
