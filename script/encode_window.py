@@ -75,8 +75,10 @@ if __name__ == "__main__":
     tokens2 = pickle.load(open("./preprocessing/tokens_bn.bin", "rb"))
     anchors1 = pickle.load(open("./preprocessing/anchors_nw.bin", "rb"))
     anchors2 = pickle.load(open("./preprocessing/anchors_bn.bin", "rb"))
-    # print(tokens1[0])
-    # print(anchors1[0])
+    # print(np.shape(anchors1[0]))
+    # print(anchors1)
+    # print(tokens2[0])
+    # print(anchors2[0])
     input_iter = create_document_iter(tokens1 + tokens2) # add along axis 0
     vocab = encode_dictionary(input_iter) # vocab is the dictionary which maps the numbers to tokens
     # vocat_list: mapping list between indices and tokens
@@ -91,7 +93,10 @@ if __name__ == "__main__":
     # l1 = np.array(labels1)
     # print(np.shape(w1))
     # print(np.shape(l1))
-    windows2, labels2 = encode_window(tokens2, anchors2, vocab)    
+    # windows shape: (tokens_amount, 31), labels shape: (tokens amount)
+    windows2, labels2 = encode_window(tokens2, anchors2, vocab)
+    # print(np.shape(windows2))
+    # print(np.shape(labels2))    
     pickle.dump(windows1, open("./preprocessing/windows1.bin", "wb"))
     pickle.dump(labels1, open("./preprocessing/labels1.bin", "wb"))
     pickle.dump(windows2, open("./preprocessing/windows2.bin", "wb"))

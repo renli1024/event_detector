@@ -3,6 +3,7 @@ import pickle, re, sys, os
 from lxml import etree
 # import xml_parse
 from xml.dom import minidom
+import numpy as np
 
 EVENT_MAP={'None': 0, 'Personnel.Nominate': 1, 'Contact.Phone-Write': 27, 'Business.Declare-Bankruptcy': 3,
            'Justice.Release-Parole': 4, 'Justice.Extradite': 5, 'Personnel.Start-Position': 22,
@@ -34,6 +35,7 @@ def read_file(xml_path, text_path):
     # get event information from .apf.xml file
     for events in root.iter("event"):
         ev_type = events.attrib["TYPE"] + "." + events.attrib["SUBTYPE"]
+        # print(ev_type)
         for mention in events.iter("event_mention"):
             ev_id = mention.attrib["ID"]
             anchor = mention.find("anchor")
@@ -54,7 +56,7 @@ def read_file(xml_path, text_path):
                 event_start[start] = ev_id
                 event_end[end] = ev_id
 
-    # transform the .sgm file (.xml file essentially) to string and excluds tags; using minidom instead of ElementTree (better nodes information representing ablility)
+    # transform the .sgm file (.xml file essentially) to string and excludes tags; using minidom instead of ElementTree (better nodes information representing ablility)
     text = ""
     str_empty = ""
     sub = 0
@@ -115,22 +117,19 @@ def read_document(doc, sub, event_start, event_end, event_ident, event_map, even
     # In MARKETVIEW_20050206.2009.sgm "&amp;" occurs in HEADLINE and is transformed to "&"
     if "MARKETVIEW_20050206.2009-EV1-1" in event: 
         sub += 4 
-    for i in range(len(doc)):
 
+    for i in range(len(doc)):
         #Because of the XML transforming of "&amp;" to "&"
         if doc[i] == "&":
             sub += 4
-
             # these files consider "&amp;" as 1 character
             if "CNN_ENG_20030616_130059.25-EV1-1" in event or "CNN_CF_20030304.1900.04-EV15-1" in event or "BACONSREBELLION_20050226.1317-EV2-1" in event:
                 sub -= 4 
 
         if i+sub in event_start:
-
             # clear str: e.g. removing special chars; doc[x:y]: half-opened; clean_str will not influence the index.
             new = clean_str(doc[current:i]) 
             tokens += new.split()
-
             # init anchors with 0 for a special range; '_' serves as a throwaway variable name.
             anchors += [0 for _ in range(len(new.split()))] 
             current = i
@@ -171,11 +170,21 @@ def encode_corpus(folder_path):
 def read_corpus(folder_path):
     count = 0
     file_list = encode_corpus(folder_path)
-    print(file_list)
+    # print(file_list)
     tokens, anchors = [], []
     for (file, path) in file_list:
         file_path = os.path.join(folder_path, path, file)
+        # print(file_path + ".apf.xml")
+        # print(file_path + ".sgm")
         tok, anc = read_file(file_path + ".apf.xml", file_path + ".sgm")
+        # print(tok)
+        # print(anc)
+        # # print(np.shape(anc))
+        # for i in range(len(anc[0])):
+        #     if anc[0][i] !=0:
+        #         for k, v in EVENT_MAP.items():    
+        #             if v == anc[0][i]:
+        #                 print(k)
         count += 1
         tokens += tok
         anchors += anc

@@ -12,13 +12,13 @@ tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device 
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
 tf.flags.DEFINE_integer("evaluate_every", 100, "")
 tf.flags.DEFINE_integer("checkpoint_every", 1000, "")
-tf.flags.DEFINE_integer("num_epochs", 300, "")
+tf.flags.DEFINE_integer("num_epochs", 5, "")
 FLAGS = tf.flags.FLAGS
 
 if __name__ == '__main__':
-    vectors, sents, anchor = load_data("./preprocessing/windows1.bin", "./preprocessing/labels1.bin")
+    vectors, sents, anchor = load_data("./preprocessing/windows2.bin", "./preprocessing/labels2.bin")
     #print(vectors.shape)
-    _, sents_test1, anchor_test1 = load_data("./preprocessing/windows2.bin", "./preprocessing/labels2.bin")
+    _, sents_test1, anchor_test1 = load_data("./preprocessing/windows1.bin", "./preprocessing/labels1.bin")
     '''
     _, sent_test2, anchor_test2 = load_data("windows3.bin", "labels3.bin")
     _, sent_test3, anchor_test3 = load_data("windows4.bin", "labels4.bin")
@@ -27,29 +27,37 @@ if __name__ == '__main__':
     # anchor shape: (53891,)
     # vectors shape: (14037, 300)
     # print(sents[0])
-    # print(anchor[0])
+    # for i in range(20, 30):
+    #     print(sents[i][:])
+    # print(anchor[0:100])
     sents = np.array(sents)
     anchor = np.array(anchor)
+    # print(np.shape(anchor))
+    # print(anchor[10:200])
     vocab_length = len(vectors)
-    print(len(sents))
     np.random.seed(10)
     # shuffle the order of indices randomly
     shuffle_indices = np.random.permutation(np.arange(len(sents)))
     sent_shuffled = sents[shuffle_indices]
     anchor_shuffled = anchor[shuffle_indices]
+    # print(anchor_shuffled[10:200])
 
     # split the dataset into train, development and test
     dev_sample_index = int(FLAGS.split * float(len(sents)))
     test_sample_index = dev_sample_index + int(FLAGS.dev_size * float(len(sents)))
-    sent_train, sent_dev, sent_test = sent_shuffled[:dev_sample_index], sent_shuffled[dev_sample_index: test_sample_index],\
-                                      sent_shuffled[test_sample_index:]
-    anchor_train, anchor_dev, anchor_test = anchor_shuffled[:dev_sample_index], anchor_shuffled[dev_sample_index: test_sample_index], \
-                               anchor_shuffled[test_sample_index:]
-    sent_dev, anchor_dev = data_evaluate(sent_dev, anchor_dev)
-    sent_test, anchor_test = data_evaluate(sent_test, anchor_test)
+    sent_train, sent_dev, sent_test = sent_shuffled[:dev_sample_index],\
+        sent_shuffled[dev_sample_index: test_sample_index],\
+        sent_shuffled[test_sample_index:]
+    anchor_train, anchor_dev, anchor_test = anchor_shuffled[:dev_sample_index],\
+        anchor_shuffled[dev_sample_index: test_sample_index],\
+        anchor_shuffled[test_sample_index:]
+    # sent_dev, anchor_dev = data_evaluate(sent_dev, anchor_dev)
+    # sent_test, anchor_test = data_evaluate(sent_test, anchor_test)
 
     anchor_train_std = np.zeros((len(anchor_train), 34))
     anchor_train_std[range(len(anchor_train)), anchor_train] = 1 
+    # print(anchor_train_std[0:20])
+    # print(anchor_train[:20])
     anchor_dev_std = np.zeros((len(anchor_dev), 34))
     anchor_dev_std[range(len(anchor_dev)), anchor_dev] = 1
     anchor_test_std = np.zeros((len(anchor_test), 34))
@@ -79,7 +87,7 @@ if __name__ == '__main__':
         grads_and_vars = optimizer.compute_gradients(cnn.loss)
         train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
-        # store the gradients and variables
+        # store gradients and variables
         grad_summaries = []
         for g, v in grads_and_vars:
             if g is not None:
@@ -126,7 +134,7 @@ if __name__ == '__main__':
                 cnn.dropout_keep_prob: 0.5,
                 cnn.size_batch : size_batch
             }
-            _, step, summaries, loss = sess.run(
+            _, step, summaries, loss= sess.run(
                 [train_op, global_step, train_summary_op, cnn.loss],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
@@ -163,8 +171,8 @@ if __name__ == '__main__':
                 cnn.dropout_keep_prob: 0.5,
                 cnn.size_batch : len(x)
             }
-            step, summaries, y_pred, y_score = sess.run(
-                [global_step, dev_summary_op, cnn.predictions, cnn.scores],
+            step, summaries, y_pred = sess.run(
+                [global_step, dev_summary_op, cnn.predictions],
                 feed_dict)
             # print(sess.run(tf.shape(x)))
             # print(sess.run(tf.shape(y_score)))
@@ -181,48 +189,46 @@ if __name__ == '__main__':
             else: return False
 
         # Initialize all variables
-        # sess.run(tf.global_variables_initializer())
+        sess.run(tf.global_variables_initializer())
 
-        # # train model
-        # stop = False
-        # for e in np.arange(FLAGS.num_epochs):
-        #     if stop == True:
-        #         break
-        #     # Generate batches. x_batch shape: (n, 31)
-        #     for step, (x_batch, y_batch) in enumerate(data_iterator(
-        #                 sent_train, anchor_train_std, cf.batch_size)):
-        #         # Training loop
-        #         size_batch = len(x_batch)
-        #         meta_model_path = os.path.abspath(os.path.join(os.path.curdir, "runs", "1553519498", "checkpoints", "final-7343.meta"))
-        #         restore_saver = tf.train.import_meta_graph(meta_model_path)
-        #         restore_saver.restore(sess, os.path.join(os.path.curdir, "runs", "1553519498", "checkpoints", "final-7343"))
-
-
-
-        #         train_step(x_batch, y_batch, size_batch)
-        #         current_step = tf.train.global_step(sess, global_step)
-        #         if current_step % FLAGS.evaluate_every == 0:
-        #             print("\nDevolope:")
-        #             for step, (x_d, y_d) in enumerate(data_iterator(
-        #                     sent_dev, anchor_dev_std, cf.batch_size)):
-        #                 dev_step(x_d, y_d)
-        #             print("")
-        #             print("Evaluate:")
-        #             stop = test_step(sent_test, anchor_test, anchor_test_std)
-        #             if stop == True:
-        #                 break
-        #             print("")
-        #         if current_step % FLAGS.checkpoint_every == 0:
-        #             path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-        #             print("Saved model checkpoint to {}\n".format(path))
-        # pickle.dump(final, open("final.bin", "wb"))
-        # print("Evaluate:")
-        # print("Training:")
-        # meta_model_path = os.path.abspath(os.path.join(os.path.curdir, "runs", "1553519498", "checkpoints", "final-7343.meta"))
-        # restore_saver = tf.train.import_meta_graph(meta_model_path)
-        # restore_saver.restore(sess, os.path.join(os.path.curdir, "runs", "1553519498", "checkpoints", "final-7343"))
-        restore_saver = tf.train.Saver()
-        restore_saver.restore(sess, os.path.join(os.path.curdir, "runs", "1553464436", "checkpoints", "final-7339"))
+        # train model
+        stop = False
+        for e in np.arange(FLAGS.num_epochs):
+            if stop == True:
+                break
+            # Generate batches. x_batch shape: (n, 31)
+            for step, (x_batch, y_batch) in enumerate(data_iterator(
+                        sent_train, anchor_train_std, cf.batch_size)):
+                # Training loop
+                size_batch = len(x_batch)
+                # print(np.shape(y_batch))
+                # print(np.argmax(y_batch, 1))
+                # for i in range(50):
+                #     for j in range(34):
+                #         if y_batch[i][j] == 1:
+                #             print("yes")
+                #             break
+                #         else:
+                #             print("no")
+                train_step(x_batch, y_batch, size_batch)
+                current_step = tf.train.global_step(sess, global_step)
+                if current_step % FLAGS.evaluate_every == 0:
+                    print("\nDevolope:")
+                    for step, (x_d, y_d) in enumerate(data_iterator(
+                            sent_dev, anchor_dev_std, cf.batch_size)):
+                        dev_step(x_d, y_d)
+                    print("")
+                    print("Evaluate:")
+                    stop = test_step(sent_test, anchor_test, anchor_test_std)
+                    if stop == True:
+                        break
+                    print("")
+                if current_step % FLAGS.checkpoint_every == 0:
+                    path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+                    print("Saved model checkpoint to {}\n".format(path))
+        pickle.dump(final, open("final.bin", "wb"))
+        print("Evaluate:")
+        print("Training:")
         # print(sent_test)
         # print(anchor_test)
         # print(anchor_test_std)

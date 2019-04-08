@@ -16,8 +16,17 @@ tf.flags.DEFINE_integer("checkpoint_every", 1000, "")
 tf.flags.DEFINE_integer("num_epochs", 300, "")
 FLAGS = tf.flags.FLAGS
 
+# toke = pickle.load(open("./preprocessing/tokens_wl.bin", "rb"))
+# anch = pickle.load(open("./preprocessing/anchors_wl.bin", "rb"))
+# for i in range(len(anch)):
+#     for j in range(len(anch[i])):
+#         if anch[i][j]==34:
+#             print(toke[i][j])
+# print(toke[0])
+# print(anch[0])
+
 file_prefix = os.path.abspath(os.path.join(os.path.curdir, 'script', 'ACE2005ENG', 
-    'orig', 'bn', 'timex2norm', 'CNN_ENG_20030304_173120.16'))
+    'orig', 'bc', 'timex2norm', 'CNN_CF_20030303.1900.00'))
 apf_file_path = file_prefix + '.apf.xml'
 sgm_file_path = file_prefix + '.sgm'
 # read token and anchor annotation information fronm file
@@ -36,7 +45,7 @@ windows, labels = ew.encode_window(tokens, anchors, vocab)
 # print(google_wordvector_path)
 # word_vecs = ew.load_bin_vec(google_wordvector_path, vocab_list)
 # pickle.dump(word_vecs, open("./signle_vector.bin", "wb"))
-word_vecs = pickle.load(open("./preprocessing/vector.bin", "rb"))
+word_vecs = pickle.load(open("./preprocessing/vector_all.bin", "rb"))
 # print(1)
 with tf.Graph().as_default():
         session_conf = tf.ConfigProto(allow_soft_placement=FLAGS.allow_soft_placement,
@@ -48,12 +57,15 @@ with tf.Graph().as_default():
         # count training steps
         global_step = tf.Variable(0, name="global_step", trainable=False)
         restore_saver = tf.train.Saver()
-        restore_saver.restore(sess, os.path.join(os.path.curdir, "runs", "1553464436", "checkpoints", "final-7339"))
+        restore_saver.restore(sess, os.path.join(os.path.curdir, "runs", "1554386044", "checkpoints", "final-23381"))
         y_anchors = sess.run(cnn.predictions, {
                 cnn.input_x: windows,
                 cnn.dropout_keep_prob: 1,
                 cnn.size_batch : len(windows)
             })
+        print(labels)
+        print(y_anchors)
+        print(1)
         # print("windows length %s " % len(windows))
         # print(windows)
         # print(tokens)
@@ -66,11 +78,11 @@ with tf.Graph().as_default():
         #     print("key: %s, value: %d" % (key, value))
         # print(1)
 
-        for i in range(len(anchors[0])):
+        for i in range(len(y_anchors)):
             print(tokens[0][i], end = "")
-            if anchors[0][i] != 0:
+            if y_anchors[i] != 0:
                 for key, value in dt.EVENT_MAP.items():
-                    if value == anchors[0][i]:
+                    if value == y_anchors[i]:
                         print("(%s)" % {key}, end="")
             print(" ", end="")
 
