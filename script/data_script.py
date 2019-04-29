@@ -22,12 +22,11 @@ def read_file(xml_path, text_path):
     """
     print(xml_path)
     print(text_path)
+
     apf_tree = ET.parse(xml_path)
     root = apf_tree.getroot()
-    
     event_start = {}
     event_end = {}
-
     event_ident = {}
     event_map = {}
     event = dict()
@@ -243,6 +242,10 @@ if __name__ == "__main__":
     tokens_wl, anchors_wl = read_corpus("./script/ACE2005ENG/orig/wl")
     pickle.dump(tokens_wl, open("./preprocessing/tokens_wl.bin","wb"))
     pickle.dump(anchors_wl, open("./preprocessing/anchors_wl.bin", "wb"))
+
+    # tokens_un, anchors_un = read_corpus("./script/ACE2005ENG/orig/un")
+    # pickle.dump(tokens_un, open("./preprocessing/tokens_un.bin","wb"))
+    # pickle.dump(anchors_un, open("./preprocessing/anchors_un.bin", "wb"))
 
     print("1")
     

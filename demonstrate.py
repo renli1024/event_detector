@@ -1,5 +1,6 @@
 from utils import *
 from ed_model import *
+from script.encode_window import *
 import script.data_script as dt
 import script.encode_window as ew
 import os, datetime, time, pickle
@@ -13,7 +14,7 @@ tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device 
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
 tf.flags.DEFINE_integer("evaluate_every", 100, "")
 tf.flags.DEFINE_integer("checkpoint_every", 1000, "")
-tf.flags.DEFINE_integer("num_epochs", 300, "")
+tf.flags.DEFINE_integer("num_epochs", 20, "")
 FLAGS = tf.flags.FLAGS
 
 # toke = pickle.load(open("./preprocessing/tokens_wl.bin", "rb"))
@@ -26,18 +27,17 @@ FLAGS = tf.flags.FLAGS
 # print(anch[0])
 
 file_prefix = os.path.abspath(os.path.join(os.path.curdir, 'script', 'ACE2005ENG', 
-    'orig', 'bc', 'timex2norm', 'CNN_CF_20030303.1900.00'))
+    'orig', 'bn', 'timex2norm', 'CNNHL_ENG_20030304_142751.10'))
 apf_file_path = file_prefix + '.apf.xml'
 sgm_file_path = file_prefix + '.sgm'
 # read token and anchor annotation information fronm file
 tokens, anchors = dt.read_file(apf_file_path, sgm_file_path)
 
 # encode word windows
-input_iter = ew.create_document_iter(tokens) 
-vocab = ew.encode_dictionary(input_iter)  # construct vocabulary
+vocab = pickle.load(open("./preprocessing/vocabulary1.bin", "rb"))
 vocab_list = list(vocab.vocabulary_._mapping.keys())
-google_wordvector_path = os.path.abspath(os.path.join(
-    os.path.curdir, 'script', 'GoogleNews-vectors-negative300.bin'))
+word_vecs = load_bin_vec("./preprocessing/GoogleNews-vectors-negative300.bin", vocab_list)
+pickle.dump(word_vecs, open("./preprocessing/vector1.bin", "wb"))
 # construct word vectors according to vocabulary 
 windows, labels = ew.encode_window(tokens, anchors, vocab)
 # print(windows)
@@ -45,7 +45,7 @@ windows, labels = ew.encode_window(tokens, anchors, vocab)
 # print(google_wordvector_path)
 # word_vecs = ew.load_bin_vec(google_wordvector_path, vocab_list)
 # pickle.dump(word_vecs, open("./signle_vector.bin", "wb"))
-word_vecs = pickle.load(open("./preprocessing/vector_all.bin", "rb"))
+# word_vecs = pickle.load(open("./preprocessing/vector_all.bin", "rb"))
 # print(1)
 with tf.Graph().as_default():
         session_conf = tf.ConfigProto(allow_soft_placement=FLAGS.allow_soft_placement,
@@ -57,7 +57,7 @@ with tf.Graph().as_default():
         # count training steps
         global_step = tf.Variable(0, name="global_step", trainable=False)
         restore_saver = tf.train.Saver()
-        restore_saver.restore(sess, os.path.join(os.path.curdir, "runs", "1554386044", "checkpoints", "final-23381"))
+        restore_saver.restore(sess, os.path.join(os.path.curdir, "runs", "1556316537", "checkpoints", "final-77065"))
         y_anchors = sess.run(cnn.predictions, {
                 cnn.input_x: windows,
                 cnn.dropout_keep_prob: 1,
@@ -73,7 +73,6 @@ with tf.Graph().as_default():
         # print("anchors length %d" % len(anchors[0]))
         # print("y_pred length %d" % len(y_pred))
         # print(anchors[0])
-        print(y_anchors)
         # for key, value in dt.EVENT_MAP.items():
         #     print("key: %s, value: %d" % (key, value))
         # print(1)

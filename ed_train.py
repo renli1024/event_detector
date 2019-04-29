@@ -16,7 +16,7 @@ tf.flags.DEFINE_integer("num_epochs", 5, "")
 FLAGS = tf.flags.FLAGS
 
 if __name__ == '__main__':
-    vectors, sents, anchor = load_data("./preprocessing/windows2.bin", "./preprocessing/labels2.bin")
+    vectors, sents, anchor = load_data("./preprocessing/windows_all.bin", "./preprocessing/labels_all.bin")
     #print(vectors.shape)
     _, sents_test1, anchor_test1 = load_data("./preprocessing/windows1.bin", "./preprocessing/labels1.bin")
     '''
@@ -168,7 +168,7 @@ if __name__ == '__main__':
             feed_dict = {
                 cnn.input_x: x,
                 cnn.input_y : y,
-                cnn.dropout_keep_prob: 0.5,
+                cnn.dropout_keep_prob: 1,
                 cnn.size_batch : len(x)
             }
             step, summaries, y_pred = sess.run(

@@ -38,7 +38,6 @@ class ed_model(object):
         with tf.variable_scope('embedded_layer'):
             WV = tf.get_variable('word_vectors', initializer=initial)
             wv = tf.nn.embedding_lookup(WV, self.input_x) # input_x shape: (50, 31), so wv shape: (50, 31, 300), wv's shape is determined by input_x's shape
-        # return tf.expand_dims(wv, [-1])
             position_embedding = tf.get_variable("Pos_emb",
                                                 shape=[self.config.sequence_length,
                                                        self.config.position_embedded_size],
@@ -118,7 +117,6 @@ class ed_model(object):
                     strides=[1, 1, 1, 1],
                     padding='VALID',
                     name="pool")
-                
                 pooled_outputs.append(pooled)
 
 

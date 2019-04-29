@@ -2,7 +2,7 @@ import pickle, random
 import numpy as np
 
 def load_data(window, label):
-    vectors = pickle.load(open("./preprocessing/vector.bin", 'rb'))
+    vectors = pickle.load(open("./preprocessing/vector_all.bin", 'rb'))
     sents = pickle.load(open(window, 'rb'))
     anchor = pickle.load(open(label, 'rb'))
     return vectors, sents, anchor

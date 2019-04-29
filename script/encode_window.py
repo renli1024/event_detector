@@ -71,23 +71,39 @@ def add_unknown_words(word_vecs, vocab, min_df=1, k=300):
             word_vecs[word] = np.random.uniform(-0.25,0.25,k)
 
 if __name__ == "__main__":
-    tokens1 = pickle.load(open("./preprocessing/tokens_nw.bin", "rb"))
+    # w = pickle.load(open("./preprocessing/windows_all.bin", "rb"))
+    # l = pickle.load(open("./preprocessing/labels_all.bin", "rb"))
+    #tokens1 = pickle.load(open("./preprocessing/tokens_bc.bin", "rb"))
     tokens2 = pickle.load(open("./preprocessing/tokens_bn.bin", "rb"))
-    anchors1 = pickle.load(open("./preprocessing/anchors_nw.bin", "rb"))
+    #tokens3 = pickle.load(open("./preprocessing/tokens_cts.bin", "rb"))
+    tokens4 = pickle.load(open("./preprocessing/tokens_nw.bin", "rb"))
+    tokens5 = pickle.load(open("./preprocessing/tokens_wl.bin", "rb"))
+    #anchors1 = pickle.load(open("./preprocessing/anchors_bc.bin", "rb"))
     anchors2 = pickle.load(open("./preprocessing/anchors_bn.bin", "rb"))
+    #anchors3 = pickle.load(open("./preprocessing/anchors_cts.bin", "rb"))
+    anchors4 = pickle.load(open("./preprocessing/anchors_nw.bin", "rb"))
+    anchors5 = pickle.load(open("./preprocessing/anchors_wl.bin", "rb"))
+
+    tokens_all =  tokens4 + tokens2
+    anchors_all =  anchors4 + anchors2
     # print(np.shape(anchors1[0]))
     # print(anchors1)
     # print(tokens2[0])
     # print(anchors2[0])
-    input_iter = create_document_iter(tokens1 + tokens2) # add along axis 0
+    input_iter = create_document_iter(tokens_all) # add along axis 0
     vocab = encode_dictionary(input_iter) # vocab is the dictionary which maps the numbers to tokens
+    # pickle.dump(vocab, open("./preprocessing/vocabulary1.bin", "wb"))
     # vocat_list: mapping list between indices and tokens
     vocab_list = list(vocab.vocabulary_._mapping.keys())
-    # word_vecs = load_bin_vec("./preprocessing/GoogleNews-vectors-negative300.bin", vocab_list)
-    # pickle.dump(word_vecs, open("./preprocessing/vector.bin", "wb"))
+    word_vecs = load_bin_vec("./preprocessing/GoogleNews-vectors-negative300.bin", vocab_list)
+    pickle.dump(word_vecs, open("./preprocessing/vector_news.bin", "wb"))
 
     # word_vecs = pickle.load(open("./preprocessing/vector.bin", "rb"))
     # winows中封装的是词的序号，vector.bin中的词向量是按照相同的序号排列的。
+    windows_all, labels_all = encode_window(tokens_all, anchors_all, vocab)
+    pickle.dump(windows_all, open("./preprocessing/windows_news.bin", "wb"))
+    pickle.dump(labels_all, open("./preprocessing/labels_news.bin", "wb"))
+
     windows1, labels1 = encode_window(tokens1, anchors1, vocab)
     # w1 = np.array(windows1)
     # l1 = np.array(labels1)
