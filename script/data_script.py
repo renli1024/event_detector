@@ -15,6 +15,22 @@ EVENT_MAP={'None': 0, 'Personnel.Nominate': 1, 'Contact.Phone-Write': 27, 'Busin
            'Business.Merge-Org': 32, 'Life.Die': 26, 'Business.Start-Org': 2, 'Justice.Convict': 28,
            'Movement.Transport': 29, 'Life.Marry': 30, 'UNKOWN': 34, 'Justice.Sentence': 31,
            'Justice.Execute': 25, 'Transaction.Transfer-Ownership': 33}
+def read_outside_file(path):
+    print(path)
+    text = ""
+    tokens = []
+    anchors = []
+    f = open(path, "r")
+    for line in f:
+        text += line
+    f.close() 
+    cl_text = clean_str(text)
+    split_text = cl_text.split()
+    anchor = [0 for x in split_text]
+    tokens.append(split_text)
+    anchors.append(anchor)
+    return tokens, anchors
+
 
 def read_file(xml_path, text_path):
     """
@@ -216,7 +232,7 @@ def clean_str(string, TREC=False):
     return string.strip() if TREC else string.strip().lower()
 
 if __name__ == "__main__":
-
+    # read_outside_file("./script/text")
     # tk = pickle.load(open("./preprocessing/tokens_bn.bin","rb"))
     # ac = pickle.load(open("./preprocessing/anchors_bn.bin", "rb"))
  

@@ -12,11 +12,11 @@ tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device 
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
 tf.flags.DEFINE_integer("evaluate_every", 100, "")
 tf.flags.DEFINE_integer("checkpoint_every", 1000, "")
-tf.flags.DEFINE_integer("num_epochs", 5, "")
+tf.flags.DEFINE_integer("num_epochs", 3, "")
 FLAGS = tf.flags.FLAGS
 
 if __name__ == '__main__':
-    vectors, sents, anchor = load_data("./preprocessing/windows_all.bin", "./preprocessing/labels_all.bin")
+    vectors, sents, anchor = load_data("./preprocessing/windows_bn.bin", "./preprocessing/labels_bn.bin")
     #print(vectors.shape)
     _, sents_test1, anchor_test1 = load_data("./preprocessing/windows1.bin", "./preprocessing/labels1.bin")
     '''
@@ -131,7 +131,7 @@ if __name__ == '__main__':
             feed_dict = {
                 cnn.input_x: x_batch,
                 cnn.input_y: y_batch,
-                cnn.dropout_keep_prob: 0.5,
+                cnn.dropout_keep_prob: 1,
                 cnn.size_batch : size_batch
             }
             _, step, summaries, loss= sess.run(
@@ -150,7 +150,7 @@ if __name__ == '__main__':
             feed_dict = {
                 cnn.input_x: x_batch,
                 cnn.input_y: y_batch,
-                cnn.dropout_keep_prob: 0.5,
+                cnn.dropout_keep_prob: 1,
                 cnn.size_batch : len(x_batch)
             }
             _, step, summaries, loss = sess.run(
@@ -201,15 +201,6 @@ if __name__ == '__main__':
                         sent_train, anchor_train_std, cf.batch_size)):
                 # Training loop
                 size_batch = len(x_batch)
-                # print(np.shape(y_batch))
-                # print(np.argmax(y_batch, 1))
-                # for i in range(50):
-                #     for j in range(34):
-                #         if y_batch[i][j] == 1:
-                #             print("yes")
-                #             break
-                #         else:
-                #             print("no")
                 train_step(x_batch, y_batch, size_batch)
                 current_step = tf.train.global_step(sess, global_step)
                 if current_step % FLAGS.evaluate_every == 0:
@@ -227,20 +218,12 @@ if __name__ == '__main__':
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                     print("Saved model checkpoint to {}\n".format(path))
         pickle.dump(final, open("final.bin", "wb"))
-        print("Evaluate:")
-        print("Training:")
-        # print(sent_test)
-        # print(anchor_test)
-        # print(anchor_test_std)
+        print("Testing: ")
         test_step(sent_test, anchor_test, anchor_test_std)
-        print("Test case 1:")
-        test_step(sents_test1, anchor_test1, anchor_test1_std)
-        print("Test case 2:")
-        '''
-        test_step(sents_test2, anchor_test2, anchor_test2_std)
-        print("Test case 3:")
-        test_step(sents_test3, anchor_test3, anchor_test3_std)
-        '''
+        # print("Test case 1:")
+        # test_step(sents_test1, anchor_test1, anchor_test1_std)
+        # print("Test case 2:")
+
         print("")
         path = saver.save(sess, final_prefix, global_step=current_step)
         print("Saved model checkpoint to {}\n".format(path))
