@@ -74,61 +74,91 @@ if __name__ == '__main__':
           %( 300, sent_train.shape[0], sent_dev.shape[0]))
 
     with tf.Graph().as_default():
+        cf = config()
+
         session_conf = tf.ConfigProto(allow_soft_placement=FLAGS.allow_soft_placement,
                                       log_device_placement=FLAGS.log_device_placement)
         sess = tf.Session(config=session_conf)
-        # with sess.as_default(): # 可以去掉？——应该是的，语句块内没有eval()语句
-        cf = config()
-        cnn = ed_model(cf, vocab_length, vectors)
-        # print(cnn.input_x)
-        # print(tf.get_collection("loss"))
-        # print(cnn.loss)
-        # count training steps
-        global_step = tf.Variable(0, name="global_step", trainable=False)
-        # print(global_step)
+        sv = tf.train.import_meta_graph("/Users/lrrr/Code/event_detector/runs/1559700609/checkpoints/final-300.meta")
+        sv.restore(sess, "/Users/lrrr/Code/event_detector/runs/1559700609/checkpoints/final-300")
+
+        graph = tf.get_default_graph()
+        # cnn = tf.get_collection('model')[0]
+        out_dir = tf.get_collection('directory')[0]
+        out_dir = str(out_dir,'utf-8')
+
+        
+
+        train_op = graph.get_operation_by_name('train_op')
+        # print(train_op)
         # print(1)
-        # set optimizer and get optimizing operation
-        optimizer = tf.train.AdamOptimizer(1e-3)
-        grads_and_vars = optimizer.compute_gradients(cnn.loss)
-        train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step, name="train_op")
+        train_summary_op = graph.get_tensor_by_name('train_summary_op/train_summary_op:0')
+        dev_summary_op = graph.get_tensor_by_name('dev_summary_op/dev_summary_op:0')
+        saver = tf.train.Saver(name='saver')
+        global_step = graph.get_tensor_by_name('global_step:0')
+        print(global_step)
+        print(1)
+        # print(sess.run(global_step))
 
-        # store gradients and variables
-        grad_summaries = []
-        for g, v in grads_and_vars:
-            if g is not None:
-                grad_hist_summary = tf.summary.histogram("{}/grad/hist".format(v.name), g)
-                sparsity_summary = tf.summary.scalar("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
-                grad_summaries.append(grad_hist_summary)
-                grad_summaries.append(sparsity_summary)
-        grad_summaries_merged = tf.summary.merge(grad_summaries)
+        # optimizer = tf.train.AdamOptimizer(1e-3)
+        # grads_and_vars = optimizer.compute_gradients(tf.get_collection('loss_output')[0])
+        # train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step, name="train_op")
 
-        # print path of output directory of models and summaries
-        timestamp = str(int(time.time()))
-        out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
-        tf.add_to_collection('directory', out_dir)
-        print("Writing to {}\n".format(out_dir))
-
-        # Summaries for loss
-        loss_summary = tf.summary.scalar("loss", cnn.loss)
-
-        # Train set Summaries
-        train_summary_op = tf.summary.merge([loss_summary, grad_summaries_merged], name='train_summary_op')
-        # print(train_summary_op)
         train_summary_dir = os.path.join(out_dir, "summaries", "train")
         train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
-
-        # Dev set summaries
-        dev_summary_op = tf.summary.merge([loss_summary], name='dev_summary_op')
+        
         dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
         dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
 
-        # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
         checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
         checkpoint_prefix = os.path.join(checkpoint_dir, "model")
         final_prefix = os.path.join(checkpoint_dir, "final")
+
+        # with sess.as_default(): # 可以去掉？——应该是的，语句块内没有eval()语句
+        # cf = config()
+        # cnn = ed_model(cf, vocab_length, vectors )
+        # # count training steps
+        # global_step = tf.Variable(0, name="global_step", trainable=False)
+        # # set optimizer and get optimizing operation
+        # optimizer = tf.train.AdamOptimizer(1e-3)
+        # grads_and_vars = optimizer.compute_gradients(cnn.loss)
+        # train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step, name="train_op")
+
+        # store gradients and variables
+        # grad_summaries = []
+        # for g, v in grads_and_vars:
+        #     if g is not None:
+        #         grad_hist_summary = tf.summary.histogram("{}/grad/hist".format(v.name), g)
+        #         sparsity_summary = tf.summary.scalar("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
+        #         grad_summaries.append(grad_hist_summary)
+        #         grad_summaries.append(sparsity_summary)
+        # grad_summaries_merged = tf.summary.merge(grad_summaries)
+
+        # # print path of output directory of models and summaries
+        # timestamp = str(int(time.time()))
+        # out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
+        # print("Writing to {}\n".format(out_dir))
+
+        # # Summaries for loss
+        # loss_summary = tf.summary.scalar("loss", cnn.loss)
+
+        # # Train set Summaries
+        # train_summary_op = tf.summary.merge([loss_summary, grad_summaries_merged])
+        # train_summary_dir = os.path.join(out_dir, "summaries", "train")
+        # train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
+
+        # # Dev set summaries
+        # dev_summary_op = tf.summary.merge([loss_summary])
+        # dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
+        # dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
+
+        # # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
+        # checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
+        # checkpoint_prefix = os.path.join(checkpoint_dir, "model")
+        # final_prefix = os.path.join(checkpoint_dir, "final")
         # if not os.path.exists(checkpoint_dir):
         #     os.makedirs(checkpoint_dir)
-        saver = tf.train.Saver(name='saver')
+        # saver = tf.train.Saver()
 
         def train_step(x_batch, y_batch, size_batch):
             """
@@ -136,17 +166,14 @@ if __name__ == '__main__':
             """
             global e
             feed_dict = {
-                cnn.input_x: x_batch,
-                cnn.input_y: y_batch,
-                cnn.dropout_keep_prob: 1,
-                cnn.size_batch : size_batch
+                graph.get_tensor_by_name('input_x:0'): x_batch,
+                graph.get_tensor_by_name('input_y:0'): y_batch,
+                graph.get_tensor_by_name('dropout_keep_prob:0'): 0.5, 
+                graph.get_tensor_by_name('size_batch:0'): size_batch
             }
-            print(cnn.input_x)
-            print(1)
             _, step, summaries, loss= sess.run(
-                [train_op, global_step, train_summary_op, cnn.loss],
+                [train_op, global_step, train_summary_op, tf.get_collection('loss_output')[0]],
                 feed_dict)
-            tf.add_to_collection("loss_f", cnn.loss)
             time_str = datetime.datetime.now().isoformat()
             print("training:{}, epoch {}, step {}, loss {:g}".format(time_str, e, step, loss))
             train_summary_writer.add_summary(summaries, step)
@@ -158,13 +185,13 @@ if __name__ == '__main__':
             """
             global e
             feed_dict = {
-                cnn.input_x: x_batch,
-                cnn.input_y: y_batch,
-                cnn.dropout_keep_prob: 1,
-                cnn.size_batch : len(x_batch)
+                graph.get_tensor_by_name('input_x:0'): x_batch,
+                graph.get_tensor_by_name('input_y:0'): y_batch,
+                graph.get_tensor_by_name('dropout_keep_prob:0'): 0.5, 
+                graph.get_tensor_by_name('size_batch:0'): len(x_batch)
             }
             _, step, summaries, loss = sess.run(
-                [train_op, global_step, train_summary_op, cnn.loss],
+                [train_op, global_step, train_summary_op, tf.get_collection('loss_output')[0]],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
             print("devolped:{}, epoch {}, step {}, loss {:g}".format(time_str,e, step, loss))
@@ -176,13 +203,13 @@ if __name__ == '__main__':
             """
             global final
             feed_dict = {
-                cnn.input_x: x,
-                cnn.input_y : y,
-                cnn.dropout_keep_prob: 1,
-                cnn.size_batch : len(x)
+                graph.get_tensor_by_name('input_x:0'): x,
+                graph.get_tensor_by_name('input_y:0'): y,
+                graph.get_tensor_by_name('dropout_keep_prob:0'): 1, 
+                graph.get_tensor_by_name('size_batch:0'): len(x)
             }
             step, summaries, y_pred = sess.run(
-                [global_step, dev_summary_op, cnn.predictions],
+                [global_step, dev_summary_op, graph.get_tensor_by_name('output/predictions:0')],
                 feed_dict)
             # print(sess.run(tf.shape(x)))
             # print(sess.run(tf.shape(y_score)))
@@ -199,7 +226,7 @@ if __name__ == '__main__':
             else: return False
 
         # Initialize all variables
-        sess.run(tf.global_variables_initializer())
+        # sess.run(tf.global_variables_initializer())
 
         # train model
         stop = False
@@ -226,6 +253,7 @@ if __name__ == '__main__':
                     print("")
                     path = saver.save(sess, final_prefix, global_step=current_step)
                     print("Saved model checkpoint to {}\n".format(path))
+                    print(1)
                 if current_step % FLAGS.checkpoint_every == 0:
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                     print("Saved model checkpoint to {}\n".format(path))
